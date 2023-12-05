@@ -1,6 +1,5 @@
 module Test.Copy where
 
--- ANCHOR: copyFile
 import Prelude
 import Data.Either (Either(..))
 import Effect.Aff (Aff, attempt, message, launchAff_)
@@ -24,6 +23,5 @@ copyFile :: FilePath -> FilePath -> Aff Unit
 copyFile file1 file2 = do
   my_data <- readTextFile UTF8 file1
   writeTextFile UTF8 file2 my_data
--- ANCHOR_END: copyFile
 
 -- Main is unused, and is only linked to in text
