@@ -66,7 +66,6 @@ main =
       test "Lookup missing" do
         Assert.equal Nothing
           $ findEntryByStreet "456 Nothing St." book
-    {-  Move this block comment starting point to enable more tests
     suite "Exercise - isInBook" do
       test "Check existing" do
         Assert.equal true
@@ -74,9 +73,9 @@ main =
       test "Check missing" do
         Assert.equal false
           $ isInBook "unknown" "person" book
-    test "Exercise - removeDuplicates" do
-      Assert.equal book
-        $ removeDuplicates bookWithDuplicate
+      test "Exercise - removeDuplicates" do
+        Assert.equal book $ removeDuplicates bookWithDuplicate
+      {-  Move this block comment starting point to enable more tests
 
 -}
 runChapterExamples :: TestSuite
