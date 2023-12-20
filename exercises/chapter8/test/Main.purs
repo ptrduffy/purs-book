@@ -19,7 +19,6 @@ main :: Effect Unit
 main =
   runTest do
     runChapterExamples
-    {-  Move this block comment starting point to enable more tests
     suite "Exercises Group - Monads and Applicatives" do
       suite "third" do
         test "No elements"
@@ -44,6 +43,7 @@ main =
         test "[1, 2, 10]"
           $ Assert.equal [ 0, 1, 2, 3, 10, 11, 12, 13 ]
           $ possibleSums [ 1, 2, 10 ]
+    {-  Move this block comment starting point to enable more tests
       suite "filterM" do
         suite "Array Monad" do
           let

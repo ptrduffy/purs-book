@@ -119,3 +119,4 @@ validatePersonAdo p = ado
   address   <- validateAddress p.homeAddress
   numbers   <- validatePhoneNumbers "Phone Numbers" p.phones
   in person firstName lastName address numbers
+
