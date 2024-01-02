@@ -43,7 +43,6 @@ main =
         test "[1, 2, 10]"
           $ Assert.equal [ 0, 1, 2, 3, 10, 11, 12, 13 ]
           $ possibleSums [ 1, 2, 10 ]
-    {-  Move this block comment starting point to enable more tests
       suite "filterM" do
         suite "Array Monad" do
           let
@@ -88,7 +87,6 @@ main =
           $ fromLeft (error "")
           $ unsafePerformEffect
           $ try $ exceptionDivide 6 0
-      suite "ST" do
         suite "estimatePi" do
           test "1000 terms of Gregory Series"
             $ Assert.assert "Estimated value of pi not within threshold"
@@ -101,6 +99,7 @@ main =
             $ Assert.equal 102334155 (fibonacci 40)
           test "45th Fibonacci number"
             $ Assert.equal 1134903170 (fibonacci 45)
+    {-  Move this block comment starting point to enable more tests
 
 -}
 runChapterExamples :: TestSuite

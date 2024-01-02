@@ -2,10 +2,13 @@ module Main where
 
 import Prelude
 
-import Data.AddressBook (PhoneNumber, examplePerson)
-import Data.AddressBook.Validation (Errors, validatePerson')
-import Data.Array (mapWithIndex, updateAt)
+import Data.AddressBook (PhoneNumber, PhoneType, examplePerson, phoneNumber)
+import Data.AddressBook.Validation (Errors, Field(..), ValidationError(..), validatePerson')
+import Data.Array (filter, head, mapMaybe, mapWithIndex, updateAt, (..))
+import Data.Bounded.Generic (class GenericBottom, class GenericTop, genericBottom, genericTop)
 import Data.Either (Either(..))
+import Data.Enum.Generic (class GenericBoundedEnum, genericFromEnum, genericToEnum)
+import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -21,6 +24,7 @@ import Web.HTML (window)
 import Web.HTML.HTMLDocument (toNonElementParentNode)
 import Web.HTML.Window (document)
 
+
 -- Note that there's a Purty formatting bug that
 -- adds an unwanted blank line
 -- https://gitlab.com/joneshf/purty/issues/77
@@ -28,19 +32,28 @@ renderValidationErrors :: Errors -> Array R.JSX
 renderValidationErrors [] = []
 renderValidationErrors xs =
   let
-    renderError :: String -> R.JSX
-    renderError err = D.li_ [ D.text err ]
+    renderError :: ValidationError -> R.JSX
+    -- renderError err = D.div_ [ D.text err ]
+    -- change for Ex 2
+    renderError err = D.div
+                        { className: "alert alert-danger row"
+                        , children: [ D.text $ show err ]
+                        }
   in
+    {-
     [ D.div
         { className: "alert alert-danger row"
         , children: [ D.ul_ (map renderError xs) ]
         }
     ]
+    -}
+    -- change for Ex 2
+    map renderError xs
 
 -- Helper function to render a single form field with an
 -- event handler to update
-formField :: String -> String -> String -> (String -> Effect Unit) -> R.JSX
-formField name placeholder value setValue =
+formField :: String -> String -> String -> String -> (String -> Effect Unit) -> R.JSX
+formField name placeholder value error setValue =
   D.div
     { className: "form-group row"
     , children:
@@ -67,13 +80,46 @@ formField name placeholder value setValue =
                     }
                 ]
             }
+        , D.text error
         ]
     }
+
+-- Helper function to enumerate all elements of the PhoneNumber type
+-- from https://stackoverflow.com/questions/68246044/get-array-containing-all-data-type-posible-values
+allElements ::
+  ∀ a rep.
+  Generic a rep =>
+  GenericBoundedEnum rep =>
+  GenericTop rep =>
+  GenericBottom rep =>
+  Array a
+allElements = mapMaybe genericToEnum (idxFrom..idxTo)
+  where
+    idxFrom = genericFromEnum (genericBottom :: a)
+    idxTo = genericFromEnum (genericTop :: a)
+
+-- Note usage below - don't need to pass PhoneType, compiler handles it
+allPhoneTypes :: Array PhoneType
+allPhoneTypes = allElements
+
+getPhoneNumber :: Array PhoneNumber -> PhoneType -> Maybe PhoneNumber
+getPhoneNumber pns pt = head $ filter (\pn -> pn."type" == pt) pns
+
+getPNWithDefault :: String -> Array PhoneNumber -> PhoneType -> PhoneNumber
+getPNWithDefault def pns pt = fromMaybe (phoneNumber pt def) (getPhoneNumber pns pt)
+
+errorForField :: Field -> Array ValidationError -> String
+errorForField f errs =
+  fromMaybe "" $
+  head $
+  map (\(ValidationError str _) -> str) $
+  filter ( \(ValidationError _ fld) -> f == fld ) errs 
+
 
 mkAddressBookApp :: Effect (ReactComponent {})
 mkAddressBookApp =
   -- incoming \props are unused
-  reactComponent "AddressBookApp" \props -> R.do
+  reactComponent "AddressBookApp" \_ -> R.do
     -- `useState` takes a default initial value and returns the
     -- current value and a way to update the value.
     -- Consult react-hooks docs for a more detailed explanation of `useState`.
@@ -94,40 +140,55 @@ mkAddressBookApp =
           (show phone."type")
           "XXX-XXX-XXXX"
           phone.number
+          (errorForField (PhoneField phone."type") errors)
           (\s -> setPerson _ { phones = updateAt' index phone { number = s } person.phones })
-
+        
       -- helper-function to render all phone numbers
+      -- inner 'map ...' used to shaw all phone number regardless of what Person contains
       renderPhoneNumbers :: Array R.JSX
-      renderPhoneNumbers = mapWithIndex renderPhoneNumber person.phones
+      renderPhoneNumbers = mapWithIndex renderPhoneNumber (map (getPNWithDefault "XXX-XXX-XXXX" person.phones) allPhoneTypes)
     pure
       $ D.div
           { className: "container"
           , children:
-              renderValidationErrors errors
-                <> [ D.div
+              -- renderValidationErrors errors
+              --  <> 
+                [ D.div
                       { className: "row"
                       , children:
                           [ D.form_
                               $ [ D.h3_ [ D.text "Basic Information" ]
-                                , formField "First Name" "First Name" person.firstName \s ->
+                                , formField "First Name" "First Name" person.firstName (errorForField FirstNameField errors) \s ->
                                     setPerson _ { firstName = s }
-                                , formField "Last Name" "Last Name" person.lastName \s ->
+                                , formField "Last Name" "Last Name" person.lastName (errorForField LastNameField errors) \s ->
                                     setPerson _ { lastName = s }
                                 , D.h3_ [ D.text "Address" ]
-                                , formField "Street" "Street" person.homeAddress.street \s ->
+                                , formField "Street" "Street" person.homeAddress.street (errorForField StreetField errors) \s ->
                                     setPerson _ { homeAddress { street = s } }
-                                , formField "City" "City" person.homeAddress.city \s ->
+                                , formField "City" "City" person.homeAddress.city (errorForField CityField errors) \s ->
                                     setPerson _ { homeAddress { city = s } }
-                                , formField "State" "State" person.homeAddress.state \s ->
+                                , formField "State" "State" person.homeAddress.state (errorForField StateField errors) \s ->
                                     setPerson _ { homeAddress { state = s } }
                                 , D.h3_ [ D.text "Contact Information" ]
                                 ]
                               <> renderPhoneNumbers
+                              -- Ex 1 - show work phone number
+                              -- <> [formField "Work" "XXX-XXX-XXXX" "XXX-XXX-XXXX"
+                              --    (\s -> log $ "Setting work phone to " <> s)]
                           ]
                       , key: "person-form"
                       }
                   ]
           }
+
+
+{-
+mkAddressBookApp :: Effect (ReactComponent {})
+mkAddressBookApp =
+  reactComponent
+    "AddressBookApp"
+    (\_ -> pure $ D.text "Hi! I'm an address book")
+-}
 
 main :: Effect Unit
 main = do

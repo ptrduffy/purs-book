@@ -24,6 +24,8 @@ derive instance Generic PhoneType _
 instance Show PhoneType where
   show = genericShow
 
+derive instance Eq PhoneType
+
 type PhoneNumber
   = { "type" :: PhoneType
     , number :: String
@@ -48,7 +50,7 @@ person firstName lastName homeAddress phones = { firstName, lastName, homeAddres
 examplePerson :: Person
 examplePerson =
   person "John" "Smith"
-    (address "123 Fake St." "FakeTown" "CA")
+    (address "123 Fake St." "FakeTown" "CAD")
     [ phoneNumber HomePhone "555-555-5555"
     , phoneNumber CellPhone "555-555-0000"
     ]
